@@ -8,13 +8,8 @@ def send_to_ollama(messages:List[Dict[str,str]]):
     # API parameters
     api_path = 'http://127.0.0.1:11434/api/chat'
     data = {
-        "model": "qwen2.5-coder:1.5b",
-        "messages": [
-            {
-                "role": "user",
-                "content": prompt
-            }
-        ]    
+        "model": "qwen2.5-coder:7b",
+        "messages": messages 
     }
     headers = {
         'Content-Type': 'application/json'
@@ -36,16 +31,13 @@ def send_to_ollama(messages:List[Dict[str,str]]):
                     
                     # Append content if 'message' and 'content' exist
                     if 'message' in json_obj and 'content' in json_obj['message']:
-                        # json_obj['message']['content']
                         yield json_obj['message']['content']
-                        # Update the Streamlit placeholder with current content
-                        # content_placeholder.markdown(full_content)
                 except json.JSONDecodeError:
                     # Skip chunks that are not complete JSON
                     continue
     
 
-st.title("Echo Bot")
+st.title("HangPT")
 
 # Initialize chat history
 if "messages" not in st.session_state:
@@ -74,4 +66,4 @@ if prompt := st.chat_input("What is up?"):
     # Add assistant response to chat history
     st.session_state.messages.append({"role": "assistant", "content": full_content})
     
-    # st.write(st.session_state)
+# st.write(st.session_state)
