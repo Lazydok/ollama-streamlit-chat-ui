@@ -25,7 +25,7 @@ def setup_sidebar():
 def chat_page(chat_name: str):
     display_chat_messages(chat_name)
 
-    if prompt := st.chat_input("무엇을 도와드릴까요?"):
+    if prompt := st.chat_input("Input your message here..."):
         with st.chat_message("user"):
             st.markdown(prompt)
         add_user_message(chat_name, prompt)
