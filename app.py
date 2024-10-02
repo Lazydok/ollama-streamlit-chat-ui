@@ -1,69 +1,53 @@
 import streamlit as st
-import requests
-import json
-from typing import List, Dict
+from streamlit_option_menu import option_menu
+from config import MODELS, CHAT_WINDOWS, APP_TITLE, APP_VERSION, OLLAMA_API_URL
+from chat_utils import initialize_chat_sessions, display_chat_messages, add_user_message, add_assistant_message, get_chat_messages
+from ollama_api import send_to_ollama
 
-def send_to_ollama(messages:List[Dict[str,str]]):
+def setup_page():
+    st.set_page_config(page_title=f"{APP_TITLE} {APP_VERSION}", layout="wide")
 
-    # API parameters
-    api_path = 'http://127.0.0.1:11434/api/chat'
-    data = {
-        "model": "qwen2.5-coder:7b",
-        "messages": messages 
-    }
-    headers = {
-        'Content-Type': 'application/json'
-    }
+def setup_sidebar():
+    with st.sidebar:
+        st.title(APP_TITLE)
+        st.write(f'Version: {APP_VERSION}')
+        st.session_state.model = st.sidebar.selectbox("Select a model:", MODELS)
         
-    # Make the POST request with streaming enabled
-    with requests.post(api_path, json=data, headers=headers, stream=True) as res:
-        # Iterate over the content as it streams in
-        # full_content = ""
-        for chunk in res.iter_content(chunk_size=None):
-            # Decode the bytes to string
-            chunk_str = chunk.decode('utf-8')
-            
-            # Check for valid JSON lines
-            if chunk_str.strip():
-                try:
-                    # Convert string to JSON object
-                    json_obj = json.loads(chunk_str)
-                    
-                    # Append content if 'message' and 'content' exist
-                    if 'message' in json_obj and 'content' in json_obj['message']:
-                        yield json_obj['message']['content']
-                except json.JSONDecodeError:
-                    # Skip chunks that are not complete JSON
-                    continue
-    
+        return option_menu(
+            menu_title="Chat List",
+            options=CHAT_WINDOWS,
+            icons=['None'] * len(CHAT_WINDOWS),
+            menu_icon="None",
+            default_index=0,
+            orientation="vertical",
+        )
 
-st.title("HangPT")
+def chat_page(chat_name: str):
+    display_chat_messages(chat_name)
 
-# Initialize chat history
-if "messages" not in st.session_state:
-    st.session_state.messages = []
+    if prompt := st.chat_input("무엇을 도와드릴까요?"):
+        with st.chat_message("user"):
+            st.markdown(prompt)
+        add_user_message(chat_name, prompt)
 
-# Display chat messages from history on app rerun
-for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
-        st.markdown(message["content"])
-
-# React to user input
-if prompt := st.chat_input("What is up?"):
-    # Display user message in chat message container
-    with st.chat_message("user"):
-        st.markdown(prompt)
-    # Add user message to chat history
-    st.session_state.messages.append({"role": "user", "content": prompt})
-
-    # Display placeholder for assistant response in chat
-    with st.chat_message("assistant"):
-        content_placeholder = st.empty()  # Placeholder for streaming output
+        with st.chat_message("assistant"):
+            st.empty()
+            full_content = st.write_stream(send_to_ollama(get_chat_messages(chat_name)))
         
-        # Accumulate content in this variable
-        full_content = st.write_stream(send_to_ollama(st.session_state.messages))
+        add_assistant_message(chat_name, full_content)
+
+def main():
+    setup_page()
+    selected_chat = setup_sidebar()
+
+    if 'model' not in st.session_state:
+        st.session_state.model = MODELS[0]
     
-    # Add assistant response to chat history
-    st.session_state.messages.append({"role": "assistant", "content": full_content})
-    
-# st.write(st.session_state)
+    st.session_state.ollama_api_url = OLLAMA_API_URL
+    st.session_state.chat_windows = CHAT_WINDOWS
+
+    initialize_chat_sessions()
+    chat_page(selected_chat)
+
+if __name__ == "__main__":
+    main()
