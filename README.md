@@ -9,7 +9,6 @@ SS-ChatAI is a simple chat interface built using Streamlit and Ollama.
 
 - Support for multiple chat windows
 - AI model integration through Ollama API
-- User-friendly interface
 - Streaming support for chat messages
 
 ## System Requirements
